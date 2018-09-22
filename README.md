@@ -8,6 +8,13 @@ The Token Sale App uses MongoDB to store its state. The application is modularis
 
 The model module exposes the [Mongoose](https://mongoosejs.com/docs/guide.html) models directly. Several utility methods have been added to the models to reduce complexity of using the models. Exposing the raw models with added methods aims at striking a balance between freedom and convenience for the callers. 
 
+### Overview
+
+The diagram below shows the datamodel, represented by this module, in the center, with the webb service/app and other services using it.
+
+![Token Sale App Overview Diagram](docs/assets/overview-3.1.png) 
+
+
 ## Models
 
 ### Lock
