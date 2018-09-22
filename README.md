@@ -1,5 +1,7 @@
 # everlife-token-sale-model
 
+The common model against which token sale services work
+
 ## Rationale
 
 The Token Sale App uses MongoDB to store its state. The application is modularised into different parts with their own responsibilities. Since all parts use the database as their means of affecting and persisting the application state we have created this module the document schemas for all other modules in the application.
