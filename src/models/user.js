@@ -17,8 +17,8 @@ const purchaseSchema = new mongoose.Schema({
         amount_expected: { type: Number, required: true },
         source_ref: { type: String, required: true },
         credited_payments: [{ type: creditedPaymentSchema, default: creditedPaymentSchema }],
-        issue_to: { type: String, default: null },
-        issued: { type: Boolean, default: false}
+        issue_to: { type: String, required: true },
+        status: { type: String, enum: ['AWAITING_PAYMENT', 'PAYMENT_CREDITED', 'ISSUED'], required: true, default: 'AWAITING_PAYMENT' }
     },
     { timestamps: true }
 );
@@ -59,13 +59,12 @@ const userSchema = new mongoose.Schema({
 );
 
 
-
-userSchema.methods.addPurchase = function(payment_system, currency, amount_expected, source_ref) {
+userSchema.methods.addPurchase = function(payment_system, currency, amount_expected, source_ref, issue_to) {
     if (this.purchases.find(p => p.source_ref == source_ref)) {
         throw 'Purchase with source_ref already exists';
     }
     const Purchase = this.model('Purchase');
-    const p = new Purchase({ payment_system, currency, amount_expected, source_ref });
+    const p = new Purchase({ payment_system, currency, amount_expected, source_ref, issue_to });
     log('Adding purchase: ', p);
     this.purchases.push(p);
 };
