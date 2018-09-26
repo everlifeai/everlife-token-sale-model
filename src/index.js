@@ -6,10 +6,11 @@ const Payment = require('./models/payment');
 /**
  * @param {string} connectionString
  * @param {string} [databaseName]
+ * @param {Boolean} debug
  * @returns {Promise}
  */
-function connectDb(connectionString, databaseName) {
-    mongoose.set('debug', true);
+function connectDb(connectionString, databaseName, debug = false) {
+    mongoose.set('debug', debug);
     return mongoose.connect(connectionString, {
         useNewUrlParser: true,
         dbName: databaseName || 'admin'

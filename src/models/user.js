@@ -12,13 +12,16 @@ const creditedPaymentSchema = new mongoose.Schema({
 );
 
 const purchaseSchema = new mongoose.Schema({
+        ever_expected: { type: Number, required: true },
         payment_system: { type: String, required: true },
         currency: { type: String, required: true },
         amount_expected: { type: Number, required: true },
         source_ref: { type: String, required: true },
         credited_payments: [{ type: creditedPaymentSchema, default: creditedPaymentSchema }],
-        issue_to: { type: String, default: null },
-        issued: { type: Boolean, default: false}
+        issue_to: { type: String, required: true },
+        status: { type: String, enum: ['AWAITING_PAYMENT', 'PAYMENT_CREDITED', 'ISSUED'], required: true, default: 'AWAITING_PAYMENT' },
+        invoice_info: { type: mongoose.Schema.Types.Mixed, default: null },
+        user_instruction: { type: mongoose.Schema.Types.Mixed, default: null }
     },
     { timestamps: true }
 );
@@ -26,7 +29,7 @@ const purchaseSchema = new mongoose.Schema({
 purchaseSchema.methods.creditPayment = function (paymentId, amountEver, amountEverBonus) {
     // TODO: Check all credited payments not only on this user/purchase
     if (this.credited_payments.find(p => p.paymentId == paymentId)) {
-        throw `PaymentId ${paymentId} has already been credited.`;
+        throw new Error(`PaymentId ${paymentId} has already been credited.`);
     }
     const CreditedPayment = this.__parent.model('CreditedPayment');
     const c = new CreditedPayment({ paymentId: paymentId, ever: amountEver, ever_bonus: amountEverBonus });
@@ -59,13 +62,12 @@ const userSchema = new mongoose.Schema({
 );
 
 
-
-userSchema.methods.addPurchase = function(payment_system, currency, amount_expected, source_ref) {
+userSchema.methods.addPurchase = function(ever_expected, payment_system, currency, amount_expected, source_ref, issue_to, invoice_info, user_instruction) {
     if (this.purchases.find(p => p.source_ref == source_ref)) {
-        throw 'Purchase with source_ref already exists';
+        throw new Error(`A purchase with source_ref ${source_ref} already exists.`);
     }
     const Purchase = this.model('Purchase');
-    const p = new Purchase({ payment_system, currency, amount_expected, source_ref });
+    const p = new Purchase({ ever_expected, payment_system, currency, amount_expected, source_ref, issue_to, invoice_info, user_instruction });
     log('Adding purchase: ', p);
     this.purchases.push(p);
 };
@@ -74,7 +76,7 @@ userSchema.methods.addPurchase = function(payment_system, currency, amount_expec
 userSchema.methods.markPurchaseIssued = function(source_ref) {
     const p = this.purchases.find(p => p.source_ref == source_ref);
     if (!p) {
-        throw 'No purchase with source_ref already exists';
+        throw new Error('No purchase with source_ref already exists');
     }
     p.issued = false;
 };
