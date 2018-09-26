@@ -63,9 +63,6 @@ const userSchema = new mongoose.Schema({
 
 
 userSchema.methods.addPurchase = function(ever_expected, payment_system, currency, amount_expected, source_ref, issue_to, invoice_info, user_instruction) {
-    if (this.purchases.find(p => p.source_ref == source_ref)) {
-        throw new Error(`A purchase with source_ref ${source_ref} already exists.`);
-    }
     const Purchase = this.model('Purchase');
     const p = new Purchase({ ever_expected, payment_system, currency, amount_expected, source_ref, issue_to, invoice_info, user_instruction });
     log('Adding purchase: ', p);
@@ -76,7 +73,7 @@ userSchema.methods.addPurchase = function(ever_expected, payment_system, currenc
 userSchema.methods.markPurchaseIssued = function(source_ref) {
     const p = this.purchases.find(p => p.source_ref == source_ref);
     if (!p) {
-        throw new Error('No purchase with source_ref already exists');
+        throw new Error('No purchase with source_ref exists');
     }
     p.issued = false;
 };
