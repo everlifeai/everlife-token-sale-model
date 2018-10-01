@@ -2,7 +2,6 @@ const log = require('util').log;
 const mongoose = require('mongoose');
 const { UserError } = require('./../errors/customErrors');
 
-
 const creditedPaymentSchema = new mongoose.Schema({
         paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment', required: true },
         ever: { type: Number, required: true },
@@ -11,9 +10,23 @@ const creditedPaymentSchema = new mongoose.Schema({
     { timestamps: true }
 );
 
+/**
+ *      problem/
+ * Payments must never be credited twice.
+ *
+ *      way/
+ * Validate that the payment id is not already credited by checking before saving a new credited payment.
+ */
+creditedPaymentSchema.pre('save', async function (next) {
+    const user = await User.findOne({ 'purchases.credited_payments.paymentId' : this.paymentId  });
+    if (this.isNew && user) {
+        next(new UserError(`The payment ${this.paymentId} has already been credited.`, 400));
+    }
+});
+
 const purchaseSchema = new mongoose.Schema({
         ever_expected: { type: Number, required: true },
-        payment_system: { type: String, required: true },
+        payment_system: { type: String, enum: ['stellar', 'coinpayments'], required: true},
         currency: { type: String, required: true },
         amount_expected: { type: Number, required: true },
         source_ref: { type: String, required: true },
@@ -26,15 +39,31 @@ const purchaseSchema = new mongoose.Schema({
     { timestamps: true }
 );
 
-purchaseSchema.methods.creditPayment = function (paymentId, amountEver, amountEverBonus) {
-    // TODO: Check all credited payments not only on this user/purchase
-    if (this.credited_payments.find(p => p.paymentId == paymentId)) {
-        throw new Error(`PaymentId ${paymentId} has already been credited.`);
+/*      problem/
+ * If multiple users use the same Stellar account as their source reference (`source_ref`) we will not be able
+ * to know which account to credit.
+ *
+ *      way/
+ * Validate that the source reference is not used by any other user before saving a new purchase.
+ */
+purchaseSchema.pre('save', async function (next) {
+    const user = await User.findOne({ 'purchases.source_ref' : this.source_ref  });
+    if (user && this.parent().id !== user.id) {
+        next(new UserError(`The source account ${this.source_ref} is already in use by another user.`, 400, `The source account ${this.source_ref} is already in used by user ${user.email}`));
     }
-    const CreditedPayment = this.__parent.model('CreditedPayment');
-    const c = new CreditedPayment({ paymentId: paymentId, ever: amountEver, ever_bonus: amountEverBonus });
-    this.credited_payments.push(c);
+});
+
+purchaseSchema.methods.credit = function(payment, ever, ever_bonus) {
+    const CreditedPayment = this.parent().model('CreditedPayment');
+    const credit = new CreditedPayment({
+        paymentId: payment._id,
+        ever: ever,
+        ever_bonus: ever_bonus
+    });
+    this.credited_payments.push(credit);
+    this.status = 'PAYMENT_CREDITED';
 };
+
 
 const userSchema = new mongoose.Schema({
         name: { type: String, required: true },
@@ -65,10 +94,9 @@ const userSchema = new mongoose.Schema({
 userSchema.methods.addPurchase = function(ever_expected, payment_system, currency, amount_expected, source_ref, issue_to, invoice_info, user_instruction) {
     const Purchase = this.model('Purchase');
     const p = new Purchase({ ever_expected, payment_system, currency, amount_expected, source_ref, issue_to, invoice_info, user_instruction });
-    log('Adding purchase: ', p);
     this.purchases.push(p);
+    return p._id.toString();
 };
-
 
 userSchema.methods.markPurchaseIssued = function(source_ref) {
     const p = this.purchases.find(p => p.source_ref == source_ref);

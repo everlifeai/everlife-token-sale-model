@@ -23,7 +23,29 @@ Can be used to prevent inadvertent concurrent execution of scripts against the d
 
 ### User
 
-Model represeting the "User", purchases and the crediting of these purchases against the Payment model.
+Model represeting the "User", purchases and the crediting of these purchases against the Payment model. The User model uses an array of purchases which in turn uses an array of credited payments to keep track of the overall state. A status flag is used to keep track of the state for each purchase (`AWAITING_PAYMENT` -> `PAYMENT_CREDITED` -> `ISSUING_PENDING` -> `ISSUED`).
+
+```
+user = {
+    name,
+    email,
+    ...
+    purchases: [
+        {
+            status,
+            ...
+            creditet_payments: [
+                paymentId.
+                ever
+                ever_bonus
+            ]
+        }
+    
+    ]
+}
+
+```
+
 
 ### Payment
 
