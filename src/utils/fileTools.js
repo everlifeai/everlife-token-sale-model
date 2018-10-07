@@ -18,6 +18,14 @@ const createFileIfNotExist = async (csvData, filePath) => {
 }
 
 /**
+ * Remove file
+ */
+const removeFile = (file) => { 
+    const filePath = path.join(__dirname, '..', 'assets', file);
+    fs.unlinkSync(filePath)
+}
+
+/**
  * Filter empty objects from array with only objects
  * @param {[ { any } ]} objectArray Any array which contains objects
  * @return Array with no empty objects 
@@ -107,6 +115,7 @@ const filterAlreadyTrustedAccounts = async (accountsPubKeys) => {
 
 module.exports = {
   createFileIfNotExist,
+  removeFile,
   filterEmptyObjects,
   appendLog,
   appendLogAllowTrust,

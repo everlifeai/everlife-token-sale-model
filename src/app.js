@@ -23,13 +23,21 @@ async function start() {
         await model.connectDb(process.env.MONGO_DB_URL, process.env.MONGO_COLLECTION)
         await Lock.acquireLock(serviceName)
     } catch (err) {
+        await Lock.releaseLock(serviceName)
+        await model.closeDb()
         console.log('Other instance running!');
         process.exit(-1);
     }
 
     // 2. Verify if there are pending transactions
     // Check if there are unresolved payments in failed_payments
-
+    const count = await FailedPayment.count({});
+    if(count > 0) {
+        await Lock.releaseLock(serviceName)
+        await model.closeDb()
+        console.log("Please resolve the failed payments");
+        process.exit(-1);
+    }
 
     // 3. Scan for private investors (isPrivateInvestor)
     const privateInvestors = await User.find({isPrivateInvestor: true});
@@ -199,4 +207,7 @@ async function sendPayments(creditedPayments) {
 
     await Lock.releaseLock(serviceName)
     await model.closeDb()
+
+    // Remove csv file (otherwise double updates - too many operations then)
+    fileTools.removeFile('output.csv');
 }
