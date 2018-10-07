@@ -9,10 +9,6 @@ module.exports = {
     pub: process.env.DIS_PUB,
     priv: process.env.DIS_PRIV
   },
-  stellar: {
-    pub: process.env.STELLAR_PUB,
-    priv: process.env.STELLAR_PRIV
-  },
   asset: {
     code: process.env.ASSET
   },

@@ -53,7 +53,7 @@ async function createUser() {
                     "currency" : "BTC", 
                     "amount_expected" : 1, 
                     "source_ref" : "GbenSRCBTC", 
-                    "issue_to" : "GBYJMSUYPHQWJSZL7AB6H5R55NF73SCL2T6TQLZNYD6NVZ5EQNHI7O2E",
+                    "issue_to" : "GBLYJUK7LATCHWF54LBFYVRW5CG7TR4P264BIKB23Y3A7KW3QUV4O4WB",
                     "credited_payments" : [
                         {
                             "paymentId" : "5bb0c60cfad344346f9be492", 

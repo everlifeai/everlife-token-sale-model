@@ -3,11 +3,11 @@ const Stellar = require('stellar-sdk');
 const mongoose = require('mongoose');
 const model = require('everlife-token-sale-model');
 
-const { Lock, User, Payment } = model;
+const { Lock, User, Payment, ArchivedPayment, CreditedPaymentObject, FailedPayment } = model;
 const serviceName = "paymentIssuance";
-const CreditedPayment = require('./models/credited_payments');
-const ArchivedPayment = require('./models/archived_payments');
-const FailedPayment = require('./models/failed_payments');
+// const CreditedPayment = require('./models/credited_payments');
+// const ArchivedPayment = require('./models/archived_payments');
+// const FailedPayment = require('./models/failed_payments');
 
 const config = require('./config/config');
 const utils = require('./utils/stellarTools')
@@ -53,7 +53,7 @@ async function start() {
             if (purchase.status === "PAYMENT_CREDITED") {
                 let issueTo = purchase.issue_to;
                 purchase.credited_payments.map(payment => {
-                    payments.push(new CreditedPayment({
+                    payments.push(new CreditedPaymentObject({
                         issue_to: issueTo,
                         ever: payment.ever
                     }));
@@ -83,7 +83,7 @@ async function start() {
 
     // 6 send payments
     // Get all payment transactions
-    let creditedPayments = await CreditedPayment.find({});
+    let creditedPayments = await CreditedPaymentObject.find({});
 
     // Close connection to DB
     await Lock.releaseLock(serviceName)
@@ -171,7 +171,7 @@ async function sendPayments(creditedPayments) {
     await Promise.all(changePaymentsStatus);
 
     // 10. Archive
-    let credited = await CreditedPayment.find({});
+    let credited = await CreditedPaymentObject.find({});
 
     await Promise.all(credited.map(cpayment => {
         let archive = new ArchivedPayment({
@@ -203,7 +203,7 @@ async function sendPayments(creditedPayments) {
 
     await Promise.all(failedTransactions);
 
-    await CreditedPayment.remove({});
+    await CreditedPaymentObject.remove({});
 
     await Lock.releaseLock(serviceName)
     await model.closeDb()
