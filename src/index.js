@@ -2,6 +2,9 @@ const mongoose = require('mongoose');
 const User = require('./models/user');
 const Lock = require('./models/lock');
 const Payment = require('./models/payment');
+const CreditedPaymentObject = require('./models/creditedPaymentObjects');
+const FailedPayment = require('./models/failedPayments');
+const ArchivedPayment = require('./models/archivedPayments');
 
 /**
  * @param {string} connectionString
@@ -26,5 +29,8 @@ module.exports = {
     closeDb,
     Lock,
     User,
-    Payment
+    Payment,
+    CreditedPaymentObject,
+    FailedPayment,
+    ArchivedPayment
 };
