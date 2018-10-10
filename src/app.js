@@ -5,9 +5,6 @@ const model = require('everlife-token-sale-model');
 
 const { Lock, User, Payment, ArchivedPayment, CreditedPaymentObject, FailedPayment } = model;
 const serviceName = "paymentIssuance";
-// const CreditedPayment = require('./models/credited_payments');
-// const ArchivedPayment = require('./models/archived_payments');
-// const FailedPayment = require('./models/failed_payments');
 
 const config = require('./config/config');
 const utils = require('./utils/stellarTools')
@@ -17,25 +14,16 @@ const stellarHelper = require('./helpers/stellar.helper');
 const toolHelper = require('./helpers/tool.helper');
 
 async function start() {
-
-    // 1. Attempt connection
-    try {
-        await model.connectDb(process.env.MONGO_DB_URL, process.env.MONGO_COLLECTION)
-        await Lock.acquireLock(serviceName)
-    } catch (err) {
-        await Lock.releaseLock(serviceName)
-        await model.closeDb()
-        console.log('Other instance running!');
-        process.exit(-1);
-    }
+    /* await model.connectDb(process.env.MONGO_DB_URL, process.env.MONGO_COLLECTION)
+    await Lock.acquireLock(serviceName) */
 
     // 2. Verify if there are pending transactions
     // Check if there are unresolved payments in failed_payments
     const count = await FailedPayment.count({});
     if(count > 0) {
-        await Lock.releaseLock(serviceName)
-        await model.closeDb()
         console.log("Please resolve the failed payments");
+        await Lock.releaseLock(serviceName);
+        await model.closeDb();
         process.exit(-1);
     }
 
@@ -52,12 +40,15 @@ async function start() {
         const updatedPurchases = investor.purchases.map(purchase => {
             if (purchase.status === "PAYMENT_CREDITED") {
                 let issueTo = purchase.issue_to;
+                let sum = 0;
                 purchase.credited_payments.map(payment => {
-                    payments.push(new CreditedPaymentObject({
-                        issue_to: issueTo,
-                        ever: payment.ever
-                    }));
+                    sum += payment.ever;
                 });
+
+                payments.push(new CreditedPaymentObject({
+                    issue_to: issueTo,
+                    ever: sum
+                }));
 
                 changed = true;
                 purchase.status = "ISSUING_PENDING";
@@ -85,10 +76,6 @@ async function start() {
     // Get all payment transactions
     let creditedPayments = await CreditedPaymentObject.find({});
 
-    // Close connection to DB
-    await Lock.releaseLock(serviceName)
-    await model.closeDb()
-
     let formattedPayments = creditedPayments.map(payment => {
         return {
             recipient: payment.issue_to,
@@ -96,14 +83,12 @@ async function start() {
         }
     });
     
-    sendPayments(formattedPayments);
+    await sendPayments(formattedPayments);
+    return Promise.resolve(true);
 }
 
-// Start scanner
-start();
-
 async function sendPayments(creditedPayments) {
-    fileTools.createFileIfNotExist('account,success,email,message', 'output.csv');
+    fileTools.createFileIfNotExist('account,success,message', 'output.csv');
     fileTools.createFileIfNotExist('account', 'allowtrust.csv');
 
     // Check if account:
@@ -114,30 +99,13 @@ async function sendPayments(creditedPayments) {
     let filteredAccounts = fileTools.filterEmptyObjects(accountTools.filterAccountsByTrustline(existingAccounts));
     let filteredAccountsPubKeys = filteredAccounts.map(accountObj => (accountObj.recipient));
     let originalPubKeys = [...filteredAccountsPubKeys];
-    let filteredAccsPubKeysNotTrusted = await fileTools.filterAlreadyTrustedAccounts(filteredAccountsPubKeys);
-
-    // Send allow trust to accounts which are not trusted yet and send EVER tokens
-    const allowTrustSuccess = await stellarHelper.sendAllowTrust(filteredAccsPubKeysNotTrusted);
-
-    if(allowTrustSuccess) {
-        const transactionsLog = await utils.sendTransactions(filteredAccounts);
-        fileTools.writeLogsForTransactions(transactionsLog, originalPubKeys);
-    }
-
-    toolHelper.checkProgramExecution(filteredAccountsPubKeys);
     
-
-    try {
-        await model.connectDb(process.env.MONGO_DB_URL, process.env.MONGO_COLLECTION)
-        await Lock.acquireLock(serviceName)
-    } catch (err) {
-        console.log('Other instance running!');
-        process.exit(-1);
-    }
-
-    let privateInvestors = await User.find({isPrivateInvestor: true});
+    // Send Tx and log result
+    const success = await utils.sendTransactions(filteredAccounts);
+    fileTools.writeLogsForTransactions(success, originalPubKeys);
 
     // Validate
+    let privateInvestors = await User.find({isPrivateInvestor: true});
     const outputData = await fileTools.loadCsv('output.csv');
 
     // account success message
@@ -154,6 +122,7 @@ async function sendPayments(creditedPayments) {
                         purchase.status = "ISSUED";
                     } else {
                         purchase.status = "PROBLEM_ISSUING";
+                        purchase.failure = output.message
                     }
                 }
 
@@ -193,7 +162,8 @@ async function sendPayments(creditedPayments) {
                 let failedTx = new FailedPayment({
                     email: investor.email,
                     issue_to: purchase.issue_to,
-                    source_ref: purchase.source_ref
+                    source_ref: purchase.source_ref,
+                    reason: purchase.failure
                 });
 
                 failedTransactions.push(failedTx.save())
@@ -205,9 +175,47 @@ async function sendPayments(creditedPayments) {
 
     await CreditedPaymentObject.remove({});
 
-    await Lock.releaseLock(serviceName)
-    await model.closeDb()
-
     // Remove csv file (otherwise double updates - too many operations then)
     fileTools.removeFile('output.csv');
+    fileTools.removeFile('allowtrust.csv');
 }
+
+/* Start application */
+model.connectDb(process.env.MONGO_DB_URL, process.env.MONGO_COLLECTION)
+.then(() => Lock.acquireLock(serviceName))
+.then(() => start())
+.then(() => Lock.releaseLock(serviceName))
+.then(() => model.closeDb())
+.catch(err => {
+    console.log('Unexpected error:', err);
+    // Remove creditedPayment objects to failed 
+    // Close DB and release lock
+    //process.exit(-1);
+
+    CreditedPaymentObject.remove({})
+        // Move all status 'ISSUING_PENDING' to failed
+        .then(() => User.find({isPrivateInvestor: true}))
+        .then((privateInvestors) => {
+            let failedTransactions = [];
+
+            privateInvestors.map(investor => {
+                investor.purchases.map(purchase => {
+                    if (purchase.status === "ISSUING_PENDING") {
+                        let failedTx = new FailedPayment({
+                            email: investor.email,
+                            issue_to: purchase.issue_to,
+                            source_ref: purchase.source_ref,
+                            reason: "Application crashed before payment could be sent"
+                        });
+        
+                        failedTransactions.push(failedTx.save())
+                    }   
+                });
+            });
+
+            return Promise.all(failedTransactions);
+        })
+        .then(() => Lock.releaseLock(serviceName))
+        .then(() => model.closeDb())
+        .then(() => process.exit(-1));
+});

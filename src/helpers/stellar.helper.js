@@ -22,7 +22,26 @@ const sendAllowTrust = async (filteredAccsPubKeysNotTrusted) => {
   }
 }
 
+/**
+ * Helper for sending disallow trust transactions for not trusted accounts
+ * @param {[ string ]} filteredAccsPubKeysTrusted 
+ */
+const removeTrust = async (filteredAccsPubKeysTrusted) => {
+  try {
+    if(filteredAccsPubKeysTrusted.length > 0) {
+        let promises = filteredAccsPubKeysTrusted.map(pubKey => utils.allowTrust(pubKey, false));
+        let resolved = await Promise.all(promises);
+    }
+  
+    return true;
+  } catch(err) { 
+    throw err;
+    return false;
+  }
+}
+
 module.exports = {
-  sendAllowTrust
+  sendAllowTrust,
+  removeTrust
 }
 

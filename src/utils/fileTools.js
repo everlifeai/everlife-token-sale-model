@@ -8,7 +8,7 @@ const Stellar = require('stellar-sdk');
  * Create output csv file if not exist
  */
 const createFileIfNotExist = async (csvData, filePath) => { 
-    const outputFilePath = path.join(__dirname, '..', 'assets', filePath);
+    const outputFilePath = path.join(__dirname, '../..', 'var', filePath);
 
     if (!fs.existsSync(outputFilePath)) {
       await fs.writeFile(outputFilePath, `${csvData}${os.EOL}`, (err) => {
@@ -21,7 +21,7 @@ const createFileIfNotExist = async (csvData, filePath) => {
  * Remove file
  */
 const removeFile = (file) => { 
-    const filePath = path.join(__dirname, '..', 'assets', file);
+    const filePath = path.join(__dirname, '../..', 'var', file);
     fs.unlinkSync(filePath)
 }
 
@@ -39,7 +39,7 @@ const filterEmptyObjects = (objectArray) => objectArray.filter(value => Object.k
  * @param {string} message Message in case of an error
  */
 const appendLog = async (account, success, message) => {
-    const outputFilePath = path.join(__dirname, '..', 'assets', 'output.csv');
+    const outputFilePath = path.join(__dirname, '../..', 'var', 'output.csv');
     await fs.appendFile(outputFilePath, `${account},${success},${message}${os.EOL}`, (err) => {
         if (err) throw err;
     });
@@ -50,7 +50,7 @@ const appendLog = async (account, success, message) => {
  * @param {string} account Receiver account for which transaction has been executed
  */
 const appendLogAllowTrust = async (account) => {
-    const allowTrustFilePath = path.join(__dirname, '..', 'assets', 'allowtrust.csv');
+    const allowTrustFilePath = path.join(__dirname, '../..', 'var', 'allowtrust.csv');
     await fs.appendFile(allowTrustFilePath, `${account}${os.EOL}`, (err) => {
         if (err) throw err;
     });
@@ -60,7 +60,7 @@ const appendLogAllowTrust = async (account) => {
  * Load csv file and convert to JSON
  */
 const loadCsv = async (file) => {
-    const csvFilePath = `./src/assets/${file}`; // path from root of project
+    const csvFilePath = `./var/${file}`; // path from root of project
     return csv().fromFile(csvFilePath);
 }
 
@@ -69,23 +69,14 @@ const loadCsv = async (file) => {
  * @param {[ Stellar.Transaction ]} transactionsLog Success responses from sending payment transactions
  * @param {[ { any }]} filteredAccounts Used to determine how many transactions succeeded
  */
-const writeLogsForTransactions = (transactionsLog, filteredAccountsPubKeys) => {
-
-  transactionsLog.map(log => {
-      let resultJson = Stellar.xdr.TransactionResult.fromXDR(log.result_xdr, 'base64');
-
-      if(resultJson._attributes.result._switch.name && resultJson._attributes.result._switch.name === 'txSuccess') {
-          let txJson = Stellar.xdr.TransactionEnvelope.fromXDR(log.envelope_xdr, 'base64');
-          let recipientPubKeyAsBuffer = txJson._attributes.tx._attributes.operations[0]._attributes.body._value._attributes.destination._value;
-          let recipientPubKey = Stellar.StrKey.encodeEd25519PublicKey(recipientPubKeyAsBuffer);
-
-          if(filteredAccountsPubKeys.includes(recipientPubKey)) {
-              const index = filteredAccountsPubKeys.indexOf(recipientPubKey);
-              filteredAccountsPubKeys.splice(index, 1);
-              appendLog(recipientPubKey, true, 'Success');
-          }
-      }
-  });
+const writeLogsForTransactions = (success, pubKeys) => {
+    pubKeys.map(pubkey => {
+        if(success) {
+            appendLog(pubkey, true, 'Successfully allowed trust - payment send - disallowed trust');
+        } else {
+            appendLog(pubkey, false, 'Payment has failed in the process of (allowed trust - payment - disallow trust)');
+        }
+    });
 }
 
 /**

@@ -67,7 +67,7 @@ const allowTrust = async (trustorPub, authorize) => {
   let opts = {
     trustor: trustorPub,
     assetCode: config.asset.code,
-    authorize: true
+    authorize
   };
 
   let transaction = new Stellar.TransactionBuilder(issuanceAccount)
@@ -92,7 +92,7 @@ const createAccount = async (funderPriv, recipient) => {
   let transaction = new Stellar.TransactionBuilder(senderAccount)
       .addOperation(Stellar.Operation.createAccount({
         destination: recipient,
-        startingBalance: '1.5'  // base amount in XLM
+        startingBalance: '1.5' // base amount in XLM
       }))
       .build();
   
@@ -133,17 +133,41 @@ const createAssetObject = (code, issuer) => new Stellar.Asset(code, issuer);
  * @param {Stellar.Asset} asset Asset object
  * @return {boolean} Indicates success of completion
  */
-const makePayment = async (srcAcc, keypair, des, amount, asset) => {
+const makePayment = async (des, amount, asset) => {
+  // Format amount
+  let amountString = amount.toString(); 
+  let begin = amountString.slice(0,(amountString.indexOf(".") + 1))
+  let end = amountString.slice((amountString.indexOf(".") + 1));
+  let trimmedAmount = `${begin}${end.slice(0,7)}`;
+
+  let issuanceKeypair = await keypairFromPriv(config.iss.priv);
+  let funderKeypair = await keypairFromPriv(config.dis.priv);
+  let funderAccount = await loadAccount(funderKeypair.publicKey());
+
   // const srcAcc = await loadAccount(src);
-  const transaction = new Stellar.TransactionBuilder(srcAcc)
+  const transaction = new Stellar.TransactionBuilder(funderAccount)
+    .addOperation(Stellar.Operation.allowTrust({
+      trustor: des,
+      assetCode: config.asset.code,
+      authorize: true,
+      source: issuanceKeypair.publicKey()
+    }))
     .addOperation(Stellar.Operation.payment({
       destination: des,
       asset: asset,
-      amount: amount.toString()
+      amount: trimmedAmount
     }))
-    .build()
+    .addOperation(Stellar.Operation.allowTrust({
+      trustor: des,
+      assetCode: config.asset.code,
+      authorize: false,
+      source: issuanceKeypair.publicKey()
+    }))
+    .build();      
 
-  transaction.sign(keypair);
+  
+  transaction.sign(funderKeypair);
+  transaction.sign(issuanceKeypair);
 
   return server.submitTransaction(transaction);
 }
@@ -154,15 +178,18 @@ const makePayment = async (srcAcc, keypair, des, amount, asset) => {
  */
 async function sendTransactions(filteredAccounts) {
   let assetObject = await createAssetObject(config.asset.code, config.iss.pub);
-  let funderKeypair = await keypairFromPriv(config.dis.priv);
-  let distributorAccount = await loadAccount(config.dis.pub);
 
   const transactionsPromiseArray = filteredAccounts.map(txData =>
-      makePayment(distributorAccount, funderKeypair, txData.recipient, txData.amount, assetObject)
+      makePayment(txData.recipient, txData.amount, assetObject)
   );
 
-  const transactionsLog = await Promise.all(transactionsPromiseArray);
-  return transactionsLog;
+  try {
+    await Promise.all(transactionsPromiseArray);
+    return true;
+  } catch (err) {
+    console.log(err);
+    return false;
+  }
 }
 
 module.exports = {

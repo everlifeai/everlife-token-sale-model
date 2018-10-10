@@ -6,7 +6,7 @@ const fileTools = require('../utils/fileTools');
  */
 const checkProgramExecution = (filteredAccountsPubKeys) => {
   if(filteredAccountsPubKeys.length === 0) {
-    console.log('Program finished successful!');
+    console.log('Transactions distributed - batchfunder tool!');
   } else {
       filteredAccountsPubKeys.map(pubKey => {
           fileTools.appendLog(pubKey, false, 'Transaction failed');

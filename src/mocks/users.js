@@ -48,16 +48,21 @@ async function createUser() {
                     "status" : "PAYMENT_CREDITED", 
                     "invoice_info" : "Invoice info ben", 
                     "user_instruction" : "Instructions ben", 
-                    "ever_expected" : 3, 
+                    "ever_expected" : 3.1600067, 
                     "payment_system" : "coinpayments", 
                     "currency" : "BTC", 
                     "amount_expected" : 1, 
                     "source_ref" : "GbenSRCBTC", 
-                    "issue_to" : "GBLYJUK7LATCHWF54LBFYVRW5CG7TR4P264BIKB23Y3A7KW3QUV4O4WB",
+                    "issue_to" : "GBYJMSUYPHQWJSZL7AB6H5R55NF73SCL2T6TQLZNYD6NVZ5EQNHI7O2E",
                     "credited_payments" : [
                         {
                             "paymentId" : "5bb0c60cfad344346f9be492", 
-                            "ever" : 4, 
+                            "ever" : 1.1600067777, 
+                            "ever_bonus" : 2
+                        },
+                        {
+                            "paymentId" : "5bb0c60cfad344346f9be493", 
+                            "ever" : 0.94, 
                             "ever_bonus" : 2
                         }
                     ]
