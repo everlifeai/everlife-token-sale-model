@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
-        status: { type: String, enum: ['INCOMING', 'PROCESSING_PENDING', 'PROCESSED', 'PROCESSSING_FAILED'], required: true, default: 'INCOMING' },
+        status: { type: String, enum: ['INCOMING', 'PROCESSING_PENDING', 'PROCESSED', 'PROCESSING_FAILED'], required: true, default: 'INCOMING' },
         payment_system: { type: String, enum: ['stellar', 'coinpayments'], required: true},
         currency: { type: String, enum: ['XLM', 'ETH', 'BTC'], required: true },
         amount: { type: Number, required: true },

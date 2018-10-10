@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Settings = require('./models/settings');
 const User = require('./models/user');
 const Lock = require('./models/lock');
 const Payment = require('./models/payment');
@@ -27,6 +28,7 @@ function closeDb() {
 module.exports = {
     connectDb,
     closeDb,
+    Settings,
     Lock,
     User,
     Payment,
