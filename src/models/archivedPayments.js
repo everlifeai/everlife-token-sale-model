@@ -7,4 +7,4 @@ const archivedPaymentSchema = new mongoose.Schema({
     { timestamps: true }
 );
 
-module.exports = mongoose.model('ArchivedPayment', archivedPaymentSchema);
+module.exports = mongoose.model('issuing_archived', archivedPaymentSchema);
