@@ -5,8 +5,7 @@ const { UserError } = require('./../errors/customErrors');
 const creditedPaymentSchema = new mongoose.Schema({
         paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment', required: true },
         ever: { type: Number, required: true },
-        ever_bonus: { type: Number, required: true },
-        failure: { type: String, required: false }
+        ever_bonus: { type: Number, required: true }
     },
     { timestamps: true }
 );
@@ -35,7 +34,8 @@ const purchaseSchema = new mongoose.Schema({
         issue_to: { type: String, required: true },
         status: { type: String, enum: ['AWAITING_PAYMENT', 'PAYMENT_CREDITED', 'ISSUING_PENDING', 'ISSUED'], required: true, default: 'AWAITING_PAYMENT' },
         invoice_info: { type: mongoose.Schema.Types.Mixed, default: null },
-        user_instruction: { type: mongoose.Schema.Types.Mixed, default: null }
+        user_instruction: { type: mongoose.Schema.Types.Mixed, default: null },
+        failure: { type: String, required: false }
     },
     { timestamps: true }
 );
