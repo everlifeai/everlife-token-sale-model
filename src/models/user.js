@@ -6,6 +6,7 @@ const creditedPaymentSchema = new mongoose.Schema({
         paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment', required: true },
         ever: { type: Number, required: true },
         ever_bonus: { type: Number, required: true },
+        failure: { type: String, required: false }
     },
     { timestamps: true }
 );
