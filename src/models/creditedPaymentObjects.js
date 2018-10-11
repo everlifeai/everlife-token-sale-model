@@ -7,4 +7,4 @@ const creditedPaymentObjectSchema = new mongoose.Schema({
     { timestamps: true }
 );
 
-module.exports = mongoose.model('CreditedPaymentObject', creditedPaymentObjectSchema);
+module.exports = mongoose.model('issuing_pending', creditedPaymentObjectSchema);

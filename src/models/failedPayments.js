@@ -9,4 +9,4 @@ const failedPaymentSchema = new mongoose.Schema({
     { timestamps: true }
 );
 
-module.exports = mongoose.model('FailedPayment', failedPaymentSchema);
+module.exports = mongoose.model('issuing_failed', failedPaymentSchema);
