@@ -6,7 +6,8 @@ const failedPaymentSchema = new mongoose.Schema({
         source_ref: { type: String, required: true },
         reason: { type: String, required: true }
     },
-    { timestamps: true }
+    { timestamps: true },
+    { collection: 'issuing_failed' }
 );
 
 module.exports = mongoose.model('issuing_failed', failedPaymentSchema);
