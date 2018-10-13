@@ -32,7 +32,7 @@ const purchaseSchema = new mongoose.Schema({
         source_ref: { type: String, required: true },
         credited_payments: [{ type: creditedPaymentSchema, default: creditedPaymentSchema }],
         issue_to: { type: String, required: true },
-        status: { type: String, enum: ['AWAITING_PAYMENT', 'PAYMENT_CREDITED', 'ISSUING_PENDING', 'ISSUED'], required: true, default: 'AWAITING_PAYMENT' },
+        status: { type: String, enum: ['AWAITING_PAYMENT', 'PAYMENT_CREDITED', 'ISSUING_PENDING', 'ISSUED', 'PROBLEM_ISSUING'], required: true, default: 'AWAITING_PAYMENT' },
         invoice_info: { type: mongoose.Schema.Types.Mixed, default: null },
         user_instruction: { type: mongoose.Schema.Types.Mixed, default: null },
         failure: { type: String, required: false }

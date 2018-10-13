@@ -1,6 +1,6 @@
 {
   "name": "everlife-token-sale-model",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Mongoose model definitions for EverLife Token Sale App",
   "main": "src/index.js",
   "author": "Fredrik Engberg",
