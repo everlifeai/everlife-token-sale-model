@@ -86,7 +86,9 @@ const userSchema = new mongoose.Schema({
         isActive: { type: Boolean, default: false },
         kycStatus: {type: String, default: null},
         idmStatus: {type: String, enum: ['', 'ACCEPT', 'DENY', 'MANUAL_REVIEW'], default: ''},
-        idmDetails: {type: String, default: null}
+        idmDetails: {type: String, default: null},
+        kycDetails: {type: String, default: null},
+        address: { type: String, default: null }
     },
     { timestamps: true }
 );
